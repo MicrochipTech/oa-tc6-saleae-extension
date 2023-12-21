@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache
+
+# Distribution / packaging
+.Python
+env/
+venv/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+*.egg
+.installed.cfg
+
+# Build stuff
+build/.gradle
+build/build
+doc/build
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE project settings
+.idea
+.vscode/
+*.code-workspace
+
+# OS stuff
+.DS_Store
+
+# Generated files
+import.svg
+pymdfu/version.py
+

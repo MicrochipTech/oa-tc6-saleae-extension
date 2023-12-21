@@ -1,0 +1,13 @@
+{
+  "name": "10Base-T1x MAC-PHY Serial interface protocol analyzer",
+  "apiVersion": "1.0.0",
+  "author": "Lars Häring",
+  "version": "0.0.1",
+  "description": "Protocol analyzer for 10BASE-T1x MAC-PHY Serial Interface protocol",
+  "extensions": {
+    "10Base-T1x MAC-PHY Serial interface protocol analyzer": {
+      "type": "HighLevelAnalyzer",
+      "entryPoint": "HighLevelAnalyzer.Hla"
+    }
+  }
+}
