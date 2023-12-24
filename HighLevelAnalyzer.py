@@ -16,6 +16,21 @@ class Tc6State(Enum):
     ERROR = 7
     DATA_TRANSACTION = 8
 
+class Tc6State(Enum):
+    CHIP_DESELECT = 0
+    HEADER_START = 1
+    HEADER = 2
+
+    CTRL_READ_HEADER_ECHO = 3
+    CTRL_READ_DATA = 4
+    CTRL_READ_DUMMY_BYTES = 5
+
+    CTRL_WRITE_HEADER_ECHO = 6
+    CTRL_WRITE_DATA_ECHO = 7
+    CTRL_WRITE_DUMMY_BYTES = 8
+    ERROR = 9
+    DATA_TRANSACTION = 10
+
 class Tc6Header():
     DNC_MASK = 0x80000000
     @classmethod
@@ -243,6 +258,30 @@ def create_data_transaction_frame(header: Tc6TransmitDataHeader, data: bytearray
     text += f"FD={footer.fd} EV={footer.ev} EBO={footer.ebo} RTSA={footer.rtsa} RTSP={footer.rtsp} TXC={footer.txc} PARITY={footer.parity})"
     return AnalyzerFrame('analyzer_frame', start_time, end_time, {'labelText': text})
 
+def create_rx_discard_data_frame(data, start_time, end_time):
+    text = f"Chunk data discard: 0x{data.hex()}"
+    return AnalyzerFrame('analyzer_frame', start_time, end_time, {'labelText': text})
+
+def create_rx_header_echo_frame(data, start_time, end_time):
+    header = Tc6ControlCommandHeader.from_bytes(data)
+    text = f"Echoed Control Header: "
+    text += f"DNC={header.dnc} HDRB={header.hdrb} WNR={header.wnr} AID={header.aid} MMS={header.mms} ADDR={hex(header.addr)} LEN={header.len} P={header.p}"
+    return AnalyzerFrame('analyzer_frame', start_time, end_time, {'labelText': text})
+
+def create_rx_control_data_echo_frame(data, start_time, end_time):
+    text = f"Echoed Data: 0x{data.hex()}"
+    return AnalyzerFrame('analyzer_frame', start_time, end_time, {'labelText': text})
+
+def create_control_header_frame(header, start_time, end_time):
+    text = f"Control Header: "
+    text += f"DNC={header.dnc} HDRB={header.hdrb} WNR={header.wnr} AID={header.aid} MMS={header.mms} ADDR={hex(header.addr)} LEN={header.len} P={header.p}"
+    return AnalyzerFrame('analyzer_frame', start_time, end_time, {'labelText': text})
+
+class Trace(Enum):
+    TRANSACTION = 0
+    RX = 1
+    TX = 2
+    ETHERNET_FRAME = 3
 
 # High level analyzers must subclass the HighLevelAnalyzer class.
 class Hla(HighLevelAnalyzer):
@@ -254,21 +293,16 @@ class Hla(HighLevelAnalyzer):
     result_types = {
         'analyzer_frame': {
             'format': '{{data.labelText}}'
-        },
-        'receive_data': {
-            'format': '{{data.values}}'
         }
     }  
 
     def __init__(self):
-        '''
-        Initialize HLA.
-
-        Settings can be accessed using the same name used above.
-        '''
+        """High level analyzer intitialization
+        """
         self.state = Tc6State.CHIP_DESELECT
         self.header_start = 0
         self.header_end = 0
+        self.header_echo_end = None
         self.transaction_start = 0
         self.transaction_end = 0
         self.txbuf = bytearray()
@@ -276,7 +310,14 @@ class Hla(HighLevelAnalyzer):
 
         self.chunk_size = 64
         self.ctrl_rw_data_protection = False
-        self.transaction_trace = True
+        if self.trace_setting == "transaction":
+            self.trace = Trace.TRANSACTION
+        elif self.trace_setting == "rx":
+            self.trace = Trace.RX
+        elif self.trace == "tx":
+            self.trace = Trace.TX
+        elif self.trace == "ethernet-frame":
+            self.trace = Trace.ETHERNET_FRAME
     
     def decode(self, frame: AnalyzerFrame):
         return_frame = None
@@ -303,40 +344,66 @@ class Hla(HighLevelAnalyzer):
                     self.header_end = frame.end_time
                     if isinstance(self.header, Tc6ControlCommandHeader):
                         if self.header.wnr:
-                            self.state = Tc6State.CTRL_WRITE_TRANSACTION_DATA
+                            self.state = Tc6State.CTRL_WRITE_HEADER_ECHO
                         else:
-                            self.state = Tc6State.CTRL_READ_TRANSACTION_HEADER_ECHO
+                            self.state = Tc6State.CTRL_READ_HEADER_ECHO
+                        if self.trace == Trace.RX:
+                            return_frame = create_rx_discard_data_frame(self.rxbuf, self.header_start, self.header_end)
+                        elif self.trace == Trace.TX:
+                            return_frame = create_control_header_frame()
                         self.rxbuf.clear() # remove rx dummy bytes
                     else:
                         self.state = Tc6State.DATA_TRANSACTION
                     self.txbuf.clear()
 
-            elif self.state == Tc6State.CTRL_WRITE_TRANSACTION_DATA:
+            elif self.state == Tc6State.CTRL_WRITE_HEADER_ECHO:
+                if len(self.txbuf) == 1:
+                    self.header_echo_start = frame.start_time
+                elif len(self.txbuf) == 4:
+                    self.header_echo_end = frame.end_time
+                    if self.trace == Trace.RX:
+                        return_frame = create_rx_header_echo_frame(self.rxbuf, self.header_echo_start, self.header_echo_end)
+                    self.rxbuf.clear()
+                    if (self.header.len + 1) * 4 * (2 if self.ctrl_rw_data_protection else 1) == 4:
+                        self.txdata = bytearray(self.txbuf)
+                        self.txbuf.clear()
+                        self.rx_control_data_echo_start = None
+                        self.state = Tc6State.CTRL_WRITE_DUMMY_BYTES
+                    else:
+                        self.state = Tc6State.CTRL_WRITE_DATA_ECHO
+
+            elif self.state == Tc6State.CTRL_WRITE_DATA_ECHO:
+                if len(self.rxbuf) == 1:
+                    self.rx_control_data_echo_start = frame.start_time
                 if len(self.txbuf) == (self.header.len + 1) * 4 * (2 if self.ctrl_rw_data_protection else 1):
                     self.txdata = bytearray(self.txbuf)
                     self.txbuf.clear()
-                    self.state = Tc6State.CTRL_WRITE_TRANSACTION_DUMMY_BYTES
+                    self.state = Tc6State.CTRL_WRITE_DUMMY_BYTES
 
-            elif self.state == Tc6State.CTRL_WRITE_TRANSACTION_DUMMY_BYTES:
+            elif self.state == Tc6State.CTRL_WRITE_DUMMY_BYTES:
+                if (len(self.txbuf) == 1) and (self.rx_control_data_echo_start == None):
+                    self.rx_control_data_echo_start = frame.start_time
                 if len(self.txbuf) == 4:
                     self.transaction_end = frame.end_time
                     # TODO: we only support single register write here so we would miss updates when multiple registers are written by addess auto increment
                     self.check_transaction_parameter_change()
-                    if self.transaction_trace:
+                    if self.trace == Trace.TRANSACTION:
                         return_frame = create_control_transaction_frame(self.header, self.txdata, self.ctrl_rw_data_protection, self.transaction_start, self.transaction_end)
+                    elif self.trace == Trace.RX:
+                        return_frame = create_rx_control_data_echo_frame(self.rxbuf, self.rx_control_data_echo_start, self.transaction_end)
                     self.txbuf.clear()
                     self.rxbuf.clear()
                     self.state = Tc6State.HEADER_START
 
-            elif self.state == Tc6State.CTRL_READ_TRANSACTION_HEADER_ECHO:
+            elif self.state == Tc6State.CTRL_READ_HEADER_ECHO:
                 if len(self.txbuf) == 4:
                     self.rxbuf.clear()
-                    self.state = Tc6State.CTRL_READ_TRANSACTION_DATA
+                    self.state = Tc6State.CTRL_READ_DATA
 
-            elif self.state == Tc6State.CTRL_READ_TRANSACTION_DATA:
+            elif self.state == Tc6State.CTRL_READ_DATA:
                 if len(self.rxbuf) == (self.header.len + 1) * 4 * (2 if self.ctrl_rw_data_protection else 1):
                     self.transaction_end = frame.end_time
-                    if self.transaction_trace:
+                    if self.trace == Trace.TRANSACTION:
                         return_frame = create_control_transaction_frame(self.header, self.rxbuf, self.ctrl_rw_data_protection, self.transaction_start, self.transaction_end)
                     self.txbuf.clear()
                     self.rxbuf.clear()
@@ -345,7 +412,7 @@ class Hla(HighLevelAnalyzer):
             elif self.state == Tc6State.DATA_TRANSACTION:
                 if len(self.txbuf) == self.chunk_size:
                     self.transaction_end = frame.end_time
-                    if self.transaction_trace:
+                    if self.trace == Trace.TRANSACTION:
                         return_frame = create_data_transaction_frame(self.header, self.rxbuf, self.transaction_start, self.transaction_end)
                     self.txbuf.clear()
                     self.rxbuf.clear()
