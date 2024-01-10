@@ -1,17 +1,6 @@
 from enum import Enum
 
 class Tc6State(Enum):
-    HEADER_START = 0
-    CHIP_DESELECT = 1
-    HEADER = 2
-    CTRL_READ_TRANSACTION_HEADER_ECHO = 3
-    CTRL_READ_TRANSACTION_DATA = 4
-    CTRL_WRITE_TRANSACTION_DATA = 5
-    CTRL_WRITE_TRANSACTION_DUMMY_BYTES = 6
-    ERROR = 7
-    DATA_TRANSACTION = 8
-
-class Tc6State(Enum):
     CHIP_DESELECT = 0
     HEADER_START = 1
     HEADER = 2
@@ -25,6 +14,7 @@ class Tc6State(Enum):
     CTRL_WRITE_DUMMY_BYTES = 8
     ERROR = 9
     DATA_TRANSACTION = 10
+    FOOTER = 11
 
 class Tc6Header():
     DNC_MASK = 0x80000000
