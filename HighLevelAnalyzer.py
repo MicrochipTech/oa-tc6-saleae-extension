@@ -1,3 +1,17 @@
+# Copyright 2024 Microchip Technology Incorporated
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # 10Base-T1S High Level Analyzer
 from saleae.analyzers import HighLevelAnalyzer, AnalyzerFrame, StringSetting, NumberSetting, ChoicesSetting
 from enum import Enum
@@ -91,7 +105,7 @@ class Hla(HighLevelAnalyzer):
         'analyzer_frame': {
             'format': '{{data.labelText}}'
         }
-    }  
+    }
 
     def __init__(self):
         """High level analyzer intitialization
@@ -109,7 +123,7 @@ class Hla(HighLevelAnalyzer):
             self.chunk_size = 64
         elif self.block_payload_size_setting == "32":
             self.chunk_size = 32
-            
+
         if "enabled" == self.control_data_protection_setting:
             self.ctrl_rw_data_protection = True
         else:
@@ -122,7 +136,7 @@ class Hla(HighLevelAnalyzer):
             self.trace = Trace.RX
         elif self.trace_setting == "tx":
             self.trace = Trace.TX
-    
+
     def decode(self, frame: AnalyzerFrame):
         return_frame = None
         if frame.type == "disable":
@@ -266,7 +280,7 @@ class Hla(HighLevelAnalyzer):
             return return_frame
 
     def check_transaction_parameter_change(self):
-        """Adjusts decoding parameters if 
+        """Adjusts decoding parameters if
         Call this function after a register write transaction is complete.
 
         The register write transaction will be anayzed to detect writes to

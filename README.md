@@ -7,7 +7,7 @@ The 10Base-T1S analyzer decodes the traffic on the SPI bus between a host and 10
 
 The analyzer requires a valid capture of the SPI bus traffic as input (CLK, MISO, MOSI and CS signals). An example configuration for SPI capture is shown in the image below.
 
-![Example configuration for SPI capture](images/SPI_settings.PNG) 
+![Example configuration for SPI capture](images/SPI_settings.PNG)
 
 
 ## Analyzer Settings
