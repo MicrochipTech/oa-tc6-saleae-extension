@@ -1,11 +1,11 @@
 {
-  "name": "10Base-T1x MAC-PHY Serial Interface Protocol Analyzer",
+  "name": "OA-TC6 Protocol Analyzer",
   "apiVersion": "1.0.0",
   "author": "Lars Häring",
-  "version": "0.0.1",
-  "description": "Protocol analyzer for 10BASE-T1x MAC-PHY serial interface protocol",
+  "version": "1.0.0",
+  "description": "Protocol analyzer for 10BASE-T1x MAC-PHY serial interface protocol (TC6)",
   "extensions": {
-    "10Base-T1x MAC-PHY Serial interface protocol analyzer": {
+    "OA-TC6 SPI Protocol Analyzer": {
       "type": "HighLevelAnalyzer",
       "entryPoint": "HighLevelAnalyzer.Hla"
     }
