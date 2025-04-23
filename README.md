@@ -47,6 +47,9 @@ When multiple registers are written in one transaction (auto address increment) 
 
 ## Changelog
 
+### [1.0.0] - April 2025
+- DSG-7698: Shorter extension name to match undocumented Saleae marketplace requirements
+
 ### [0.0.1] - January 2024
 
 Initial release.
