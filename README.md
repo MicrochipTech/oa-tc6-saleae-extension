@@ -26,7 +26,7 @@ Available analyzer trace ouputs:
 ### Block Payload Size
 
 Block payload size to decode data transactions.
-- auto-detec: The analyzer will try to auto-detec the size by identifying writes to the configuration register CONFIG 0
+- auto-detect: The analyzer will try to auto-detect the size by identifying writes to the configuration register CONFIG 0
 - 64: Sets block payload size to 64 bytes
 - 32: Sets block payload size to 32 bytes
 
@@ -35,7 +35,7 @@ Note that auto-detect only works if changes to the register containing these set
 ### Control Data Read/Write Protection
 
 This setting defines whether or not the protection for the control read/write data is enabled.
-- auto-detect: The analyzer will try to auto-detec the setting by identifying writes to the configuration register CONFIG 0
+- auto-detect: The analyzer will try to auto-detect the setting by identifying writes to the configuration register CONFIG 0
 - enabled: The analyzer assumes that control read/write data protection is enabled
 - disabled: The analyzer assumes that control read/write data protection is disabled
 
